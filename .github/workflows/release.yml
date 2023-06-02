@@ -10,6 +10,8 @@ env:
   poetry_version: "1.4.2"
   github_api_version: "2022-11-28"
 
+permissions: write-all
+
 jobs:
   build_and_release:
     name: Build & Release

@@ -9,7 +9,7 @@ packages = [{include = "package_release_tester"}]
 [tool.poetry.dependencies]
 python = "^3.7"
 
-# 3
+# 4
 
 [build-system]
 requires = ["poetry-core"]
