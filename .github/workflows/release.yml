@@ -63,6 +63,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          # why are you angry
+          set -o xtrace
+
           # Semver hack
           prerelease=$([[ '${{ env.tag }}' =~ - ]] && echo 'true' || echo 'false')
 
