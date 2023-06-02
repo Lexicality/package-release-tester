@@ -53,7 +53,7 @@ jobs:
         shell: bash
         run: |
           # There shouldn't be anything in dist but make sure
-          rf -rf ./dist
+          rm -rf ./dist
           poetry build
 
       - name: Create the release & upload assets
