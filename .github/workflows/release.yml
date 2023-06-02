@@ -1,0 +1,99 @@
+name: Build & Push
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths: pyproject.toml
+env:
+  python_version: "3.7"
+  poetry_version: "1.4.2"
+  github_api_version: "2022-11-28"
+
+jobs:
+  build_and_release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.python_version }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: ${{ env.poetry_version }}
+
+      - name: Get release tag
+        id: release-tag
+        # Using shell: bash explicitly because it turns on safety features like pipefail
+        shell: bash
+        run: |
+          echo "tag=v$(poetry version --short --no-ansi --no-interaction)" >> "$GITHUB_OUTPUT"
+
+      - name: Check for pre-existing release
+        id: safety
+        env:
+          tag: ${{ steps.release-tag.outputs.tag }}
+        shell: bash
+        run: |
+          url='/repos/${{ github.repository }}/releases/${{ env.tag }}'
+          if gh api $url >/dev/null 2>&1; then
+            echo "check=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "check=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build the new version
+        if: steps.safety.outputs.check == 'true'
+        shell: bash
+        run: |
+          # There shouldn't be anything in dist but make sure
+          rf -rf ./dist
+          poetry build
+
+      - name: Create the release & upload assets
+        if: steps.safety.outputs.check == 'true'
+        env:
+          tag: ${{ steps.release-tag.outputs.tag }}
+        shell: bash
+        run: |
+          # Semver hack
+          prerelease=$([[ '${{ env.tag }}' =~ - ]] && echo 'true' || echo 'false')
+
+          gh api \
+            --method POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: ${{ env.github_api_version }}' \
+            /repos/${{ github.repository }}/releases \
+            -f tag_name='${{ env.tag }}' \
+            -f target_commitish='${{ github.event.after }}' \
+            -F draft=true \
+            -F prerelease=$prerelease \
+            -F generate_release_notes=true >result.json
+
+          release_id=$(jq .id result.json)
+
+          cd dist
+          shopt -s nullglob
+          for file in *; do
+            gh api \
+              --method POST \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: ${{ env.github_api_version }}' \
+              --hostname uploads.github.com \
+              "/repos/${{ github.repository }}/releases/${release_id}/assets?name=${file}" \
+              -f "@{file}"
+          done
+
+          gh api \
+            --method PATCH \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: ${{ env.github_api_version }}' \
+            "/repos/${{ github.repository }}/releases/${release_id}" \
+            -F draft=false \
+            -F make_latest=true
