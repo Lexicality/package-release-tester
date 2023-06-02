@@ -65,41 +65,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          shopt -s nullglob
+
           # why are you angry
           set -o xtrace
 
           # Semver hack
-          prerelease=$([[ '${{ env.tag }}' =~ - ]] && echo 'true' || echo 'false')
+          prerelease=$([[ '${{ env.tag }}' =~ - ]] && echo -n 'true' || echo -n 'false')
 
-          gh api \
-            --method POST \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'X-GitHub-Api-Version: ${{ env.github_api_version }}' \
-            /repos/${{ github.repository }}/releases \
-            -f tag_name='${{ env.tag }}' \
-            -f target_commitish='${{ github.event.after }}' \
-            -F draft=true \
-            -F prerelease=$prerelease \
-            -F generate_release_notes=true >result.json
-
-          release_id=$(jq .id result.json)
-
-          cd dist
-          shopt -s nullglob
-          for file in *; do
-            gh api \
-              --method POST \
-              -H 'Accept: application/vnd.github+json' \
-              -H 'X-GitHub-Api-Version: ${{ env.github_api_version }}' \
-              --hostname uploads.github.com \
-              "/repos/${{ github.repository }}/releases/${release_id}/assets?name=${file}" \
-              -F "@${file}"
-          done
-
-          gh api \
-            --method PATCH \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'X-GitHub-Api-Version: ${{ env.github_api_version }}' \
-            "/repos/${{ github.repository }}/releases/${release_id}" \
-            -F draft=false \
-            -F make_latest=true
+          gh release create \
+            '${{ env.tag }}'
+            --draft \
+            --prerelease=${prerelease} \
+            --generate-notes \
+            --target='${{ github.event.after }}'
+          gh release upload '${{ env.tag }}' dist/*
+          gh release edit '${{ env.tag }}' --draft=false
