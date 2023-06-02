@@ -93,7 +93,7 @@ jobs:
               -H 'X-GitHub-Api-Version: ${{ env.github_api_version }}' \
               --hostname uploads.github.com \
               "/repos/${{ github.repository }}/releases/${release_id}/assets?name=${file}" \
-              -f "@{file}"
+              -f "@${file}"
           done
 
           gh api \
