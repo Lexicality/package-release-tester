@@ -60,6 +60,7 @@ jobs:
         if: steps.safety.outputs.check == 'true'
         env:
           tag: ${{ steps.release-tag.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           # Semver hack
