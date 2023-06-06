@@ -43,6 +43,8 @@ jobs:
           tag: ${{ steps.release-tag.outputs.tag }}
         shell: bash
         run: |
+          gh release view ${{ env.tag }} | cat
+          echo $?
           if gh release view ${{ env.tag }} >/dev/null 2>&1; then
             echo "check=false" >> "$GITHUB_OUTPUT"
           else
