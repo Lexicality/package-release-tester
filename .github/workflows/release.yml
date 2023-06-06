@@ -41,6 +41,7 @@ jobs:
         id: safety
         env:
           tag: ${{ steps.release-tag.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           gh release view ${{ env.tag }} | cat
