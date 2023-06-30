@@ -1,0 +1,81 @@
+name: Crimes
+on:
+  workflow_dispatch:
+    inputs:
+      run-tests:
+        description: "Run tests?"
+        default: false
+        type: boolean
+      ref:
+        description: "What to deploy (leave blank for workflow branch)"
+        type: string
+        required: false
+      region:
+        default: uk
+        type: choice
+        options:
+          - uk
+          - us
+      namespace:
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  substitution:
+    name: Sub Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        region: ["uk", "us"]
+        namespace: ["staging", "production"]
+    steps:
+      - env:
+          sentry-env: ${{ contains(matrix.region, 'uk') && '' || format('{0]-', matrix.region) }}${{ matrix.namespace }}
+          aws-region: ${{ contains(matrix.region, 'uk') && 'eu-west-1' || 'us-west-1' }}
+        run: |
+          echo ${{ env.sentry-env }}
+          echo ${{ env.aws-region }}
+
+  resolver:
+    name: "Resolve Ref"
+    runs-on: ubuntu-latest
+    env:
+      ref: ${{ inputs.ref || github.sha }}
+    outputs:
+      target-sha: ${{ steps.resolve.outputs.target-sha }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.ref }}
+
+      - name: Resolve Ref
+        id: resolve
+        run: |
+          echo "target-sha=$(git rev-parse ${{ env.ref }})" >> "$GITHUB_OUTPUT"
+
+  tests:
+    name: "Tests!"
+    runs-on: ubuntu-latest
+    if: inputs.run-tests
+    steps:
+      - run: "true"
+
+  post-tests:
+    name: "I should always run"
+    runs-on: ubuntu-latest
+    needs:
+      - tests
+      - resolver
+    env:
+      ref: ${{ needs.resolver.outputs.target-sha }}
+    if: always() && !cancelled() && !failure()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.ref }}
+
+      - run: echo $ref
