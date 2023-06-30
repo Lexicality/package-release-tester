@@ -32,8 +32,7 @@ jobs:
         namespace: ["staging", "prod"]
     steps:
       - env:
-          sentry-ns: ${{ (matrix.namespace == 'prod' && 'production') || matrix.namespace }}
-          sentry-env: ${{ matrix.region != 'uk' && format('{0}-', matrix.region) || '' }}${{ env.sentry-ns }}
+          sentry-env: ${{ matrix.region != 'uk' && format('{0}-', matrix.region) || '' }}${{ (matrix.namespace == 'prod' && 'production') || matrix.namespace }}
           aws-region: ${{ (matrix.region == 'uk' && 'eu-west-1') || (matrix.region == 'us' && 'us-west-1') || 'invalid' }}
         run: |
           echo ${{ env.sentry-env }}
