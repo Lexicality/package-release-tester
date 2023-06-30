@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     if: inputs.run-tests
     steps:
-      - run: "true"
+      - run: "false"
 
   post-tests:
     name: "I should always run"
