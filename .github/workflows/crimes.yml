@@ -32,7 +32,7 @@ jobs:
         namespace: ["staging", "production"]
     steps:
       - env:
-          sentry-env: ${{ contains(matrix.region, 'uk') && '' || format('{0}-', matrix.region) }}${{ matrix.namespace }}
+          sentry-env: ${{ !contains(matrix.region, 'uk') && format('{0}-', matrix.region) || '' }}${{ matrix.namespace }}
           aws-region: ${{ contains(matrix.region, 'uk') && 'eu-west-1' || 'us-west-1' }}
         run: |
           echo ${{ env.sentry-env }}
