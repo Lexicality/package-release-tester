@@ -29,11 +29,12 @@ jobs:
     strategy:
       matrix:
         region: ["uk", "us"]
-        namespace: ["staging", "production"]
+        namespace: ["staging", "prod"]
     steps:
       - env:
-          sentry-env: ${{ !contains(matrix.region, 'uk') && format('{0}-', matrix.region) || '' }}${{ matrix.namespace }}
-          aws-region: ${{ contains(matrix.region, 'uk') && 'eu-west-1' || 'us-west-1' }}
+          sentry-ns: ${{ (matrix.namespace == 'prod' && 'production') || matrix.namespace }}
+          sentry-env: ${{ matrix.region != 'uk' && format('{0}-', matrix.region) || '' }}${{ env.sentry-ns }}
+          aws-region: ${{ (matrix.region == 'uk' && 'eu-west-1') || (matrix.region == 'us' && 'us-west-1') || 'invalid' }}
         run: |
           echo ${{ env.sentry-env }}
           echo ${{ env.aws-region }}
